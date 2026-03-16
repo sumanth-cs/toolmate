@@ -1,0 +1,281 @@
+{
+  "name": "CodeMate Image Pro",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4b9c3ecb-162a-401a-b57f-a6f84831dee1",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        176,
+        256
+      ],
+      "webhookId": "web-app-image-gen-endpoint"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"imageUrl\": \"{{ $json.generated_image }}\"\n}",
+        "options": {}
+      },
+      "id": "4f563dd4-3ff1-4303-9f9e-ef0586929d11",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"f8df6f97acmsh23a7e9e036a0377p183447jsnb1603be79051\",\n  \"fa50b60bf5msha4b7fc8d16f66cap1b3305jsn917305b9182a\",\n  \"8600d58ea6msh950da54a8676db4p14da23jsn494d7fcc18c4\",\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"fd4b480f62msh914725249be31b0p15b789jsn9e23a9bf2dbb\",\n  \"9ca5da259cmsh3a660d7ab6ba7d0p1087e8jsnbd892cff89c6\",\n  \"0603a8dd87msh2cd2a3aa7e3e23bp11fac4jsn747c62e86fb4\" \n ];\n staticData.keyIndex = 0;\n}\n\n// Grabs the prompt from the incoming MERN webhook POST request\nconst prompt = $('Webhook1').item.json.body.prompt;\n\nreturn [{\n json:{\n  prompt,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "e4bc9f69-c37b-424e-b7bc-0a067c092674",
+      "name": "Get API Key2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.output }}",
+              "operation": "contains",
+              "value2": "403"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "467bfba7-748a-467d-a9d8-b1246434779d",
+      "name": "Quota Exceeded?2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nstaticData.keyIndex++;\n\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\n\nreturn [{json:{retry:true}}];"
+      },
+      "id": "0c11a81f-6f8d-45ed-ba9b-54fc92b786b6",
+      "name": "Rotate API Key2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Webhook Test\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/generate-image\" -H \"Content-Type: application/json\" -d \"{\\\"prompt\\\": \\\"A highly detailed futuristic cyberpunk city, 4k resolution\\\"}\"\n\n\nwebhook test curl windows cmd\n\n## This works for website integration",
+        "height": 656,
+        "width": 1216,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -48
+      ],
+      "id": "3a1e6de0-d0c1-4e0f-9ba5-aceb45f295f2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "options": {
+          "systemMessage": "You are an assistant that rewrites any prompt provided by the user to make it clearer more effective and fully aligned with the user’s original intent Do not ask questions or add extra commentary Return only the improved version of the user’s prompt Clearly state that the final output must not use quotes or any special characters\nthe output you provide should only be the prompt and no other things\nThe prompts main focus should be to telling to generate the image as the user is writing his prompt in a ai image generator bot who's work is to generate the images\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        512
+      ],
+      "id": "12a7e769-0879-4191-b4bc-3cfc35ef0cfb",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        624,
+        736
+      ],
+      "id": "d69b9ad5-34c0-4217-a62b-1a97084e0128",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DknMzvIG4Ze5Yj4p",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open-ai21.p.rapidapi.com/texttoimage2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "open-ai21.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $('Get API Key2').item.json.apiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\":\"{{ $json.output }}\"}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d0ec8798-2d66-4a58-9353-e9a13e6b7411",
+      "name": "Generate Image3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1040,
+        304
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get API Key2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quota Exceeded?2": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key2": {
+      "main": [
+        [
+          {
+            "node": "Get API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Generate Image3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image3": {
+      "main": [
+        [
+          {
+            "node": "Quota Exceeded?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7f1e321a-e94c-459e-a5a9-ad41cb0bbaa6",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "1778I8YfOwbqBfKH",
+  "tags": []
+}

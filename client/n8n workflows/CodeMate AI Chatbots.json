@@ -1,0 +1,397 @@
+{
+  "name": "CodeMate AI Chatbots",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8ed47cef-9645-4dc0-be4f-0c67dd6beb87",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        96,
+        272
+      ],
+      "webhookId": "09c0e7d6-3a2e-4628-a49b-41dc6306523c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"fd4b480f62msh914725249be31b0p15b789jsn9e23a9bf2dbb\",\n  \"YOUR_RAPID_API_KEY_2\"\n ];\n staticData.keyIndex = 0;\n}\n\nconst body = $('Webhook').item.json.body || {};\n\n// We accept a full messages array, OR we wrap a simple prompt into the required array format\nconst defaultPrompt = body.prompt || 'Write a short story about four cats.';\nconst messages = body.messages || [{ \"role\": \"user\", \"content\": defaultPrompt }];\n\n// Default to GPT-4o if the frontend doesn't specify\nconst model = body.model || 'openai/gpt-4o';\n\nreturn [{\n json:{\n  model: model,\n  messages: messages,\n  temperature: body.temperature || 0.7,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "f7d73fd8-c9c8-458a-ba9d-030e3520f276",
+      "name": "Extract Params & Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-gateway-pro.p.rapidapi.com/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "ai-gateway-pro.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $json.model }}\",\n  \"messages\": {{ JSON.stringify($json.messages) }},\n  \"temperature\": {{ $json.temperature }}\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "3c0f4bf8-f858-4f99-8b83-8d3b161ff8b1",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        272
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error ? true : false }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4d4498c2-0885-49b5-8dc6-aa15cf9705d4",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        752,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.error?.message || '' }}",
+              "operation": "contains",
+              "value2": "403"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "67e6c79c-afab-41ef-9c56-958ea1f9360d",
+      "name": "Is Quota Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        976,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "2c81c758-88a6-4aa0-a4b6-9aabb1684aca",
+      "name": "Rotate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 504
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.error?.message || '' }}",
+              "operation": "contains",
+              "value2": "504"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "c63b2cea-89ff-456f-a60f-ab1da072c208",
+      "name": "Is 504 Timeout?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "472c0c74-cf19-4ebd-985c-14da52f14a55",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        176
+      ],
+      "webhookId": "196946e8-30c2-43e2-84b8-a1c6449a84c9"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"response\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "72de5f72-eb61-44c3-af12-4f90cf98783e",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        976,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Chat completion failed after retries.\"\n}",
+        "options": {}
+      },
+      "id": "e2baf9ce-4fc5-40a0-a1ef-34ecf1fbc8a7",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://ai-gateway-pro.p.rapidapi.com/models",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "supportsVision",
+              "value": "true"
+            },
+            {
+              "name": "supportsTools",
+              "value": "true"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Proxy-Secret",
+              "value": "SK"
+            },
+            {
+              "name": "x-rapidapi-host",
+              "value": "ai-gateway-pro.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        272,
+        752
+      ],
+      "id": "015563b5-643f-451c-bec1-01f047b25f7b",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "content": "## CodeMate AI Chatbots\n**\nTest url:\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/ai-chat\" -H \"Content-Type: application/json\" -d \"{\\\"prompt\\\": \\\"Explain quantum computing in one sentence.\\\"}\"\n\n#different model name:\n\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/ai-chat\" -H \"Content-Type: application/json\" -d \"{\\\"model\\\": \\\"anthropic/claude-3-sonnet\\\", \\\"prompt\\\": \\\"Write a haiku about coding.\\\"}\"",
+        "height": 800,
+        "width": 1712
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -128
+      ],
+      "id": "8d532a0f-4ba8-44b4-b6f6-ac6d1d95b380",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params & Key": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Is Quota Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Quota Limit?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is 504 Timeout?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is 504 Timeout?": {
+      "main": [
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d56b04b8-3f27-4752-a4eb-b5b6da512272",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "J4AUlPlKhO82F6Lf",
+  "tags": []
+}

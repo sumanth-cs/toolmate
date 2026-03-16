@@ -1,0 +1,281 @@
+{
+  "name": "CodeMate AI Speech-to-Text (URL/ Youtube Video Transcription)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transcribe-video",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8d488145-da59-4f10-8191-1142b21f2379",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        208,
+        320
+      ],
+      "webhookId": "5442d4c6-d1cc-48c0-bd4f-022aa68a9b6d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"YOUR_RAPID_API_KEY_2\"\n ];\n staticData.keyIndex = 0;\n}\n\nconst body = $('Webhook').item.json.body || {};\n\nreturn [{\n json:{\n  videoUrl: body.url || '',\n  lang: body.lang || 'en',\n  task: body.task || 'transcribe',\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "2ea85128-e972-4071-8770-84ff97b6a04d",
+      "name": "Extract Params & Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://speech-to-text-ai.p.rapidapi.com/transcribe",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.videoUrl }}"
+            },
+            {
+              "name": "lang",
+              "value": "={{ $json.lang }}"
+            },
+            {
+              "name": "task",
+              "value": "={{ $json.task }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "speech-to-text-ai.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "aeac4608-06f1-4111-9955-98a919da2768",
+      "name": "Video Transcribe API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        320
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error ? true : false }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "51966d72-3fe6-48e4-8929-f06b42274b49",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "e32c76eb-0652-4e79-8bd9-19716c439ab2",
+      "name": "Rotate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"text\": \"{{ $('AI Agent').item.json.output }}\",\n  \"detected_language\": \"{{ $('Video Transcribe API').item.json.chunks[0].lang }}\"\n}",
+        "options": {}
+      },
+      "id": "fc02f8bd-bc95-4cf0-8338-6f50ee24a0eb",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Speech-to-Text (Youtube Video Transcription)\n\n\n#Test curl:\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/transcribe-video\" -H \"Content-Type: application/json\" -d \"{\\\"url\\\": \\\"https://youtu.be/4mtbY2T6jXY?si=oe2xed8bufX1Rryx\\\", \\\"lang\\\": \\\"en\\\"}\"\n\n##Supports:\n\nURL of the audio/video file or YouTube, TikTok, Instagram, Facebook, X (Twitter), Vimeo or LinkedIn video link to transcribe. Files supported formats: mp3, mp4, mpeg, mpga, m4a, wav or webm.",
+        "height": 624,
+        "width": 1572
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f4775632-e816-42b7-a62f-e2f8cb097a1a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert content summarizer.\n\nYour task is to transform the provided video transcript into a **clear, engaging, and easy-to-read summary**.\n\nInstructions:\n\n1. Read the full transcript carefully and understand the main topic.\n2. Produce a **concise but informative summary** that captures the key ideas, insights, and conclusions.\n3. Make the summary **interesting and easy to read**, as if explaining the video to someone who does not want to watch the full video.\n4. Remove filler words, repetitions, and irrelevant parts.\n5. If the video contains multiple topics, organize them into **bullet points or short sections**.\n6. Highlight **important takeaways or insights**.\n7. Keep the summary **shorter than the original transcript but still complete**.\n8. If helpful, include a **short title** that represents the video topic.\n\nOutput format:\n\nTitle: (Short title describing the video)\n\nSummary:\n(A clear paragraph explaining the core idea of the video)\n\nKey Points:\n• Point 1\n• Point 2\n• Point 3\n• Point 4\n\nKey Takeaway:\n(A short final insight or conclusion from the video)\n\nTranscript:\n{{ $json.text || $json.transcript }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        848,
+        320
+      ],
+      "id": "d27d9ffb-8800-4da3-b77b-ae021ef1b4aa",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        720,
+        528
+      ],
+      "id": "8bb4f219-1527-4cd3-b836-668337a802e4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DknMzvIG4Ze5Yj4p",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params & Key": {
+      "main": [
+        [
+          {
+            "node": "Video Transcribe API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Transcribe API": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c1b44411-e573-4210-b926-108f7456df0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "1c08dfyRnZhNeb0O",
+  "tags": []
+}

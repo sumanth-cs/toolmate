@@ -1,0 +1,308 @@
+{
+  "name": "CodeMate Video-Fast",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatgpt-42.p.rapidapi.com/videogeneration_1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "chatgpt-42.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $('Webhook1').item.json.body.prompt }}\",\n  \"height\": 512,\n  \"width\": 768,\n  \"camera_lora\": \"No LoRA\",\n  \"image_optional_base64\": \"\",\n  \"randomize_seed\": false,\n  \"seed\": 42,\n  \"duration_seconds\": 8\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "03aa5c85-c6bd-4038-b072-016361e77c9e",
+      "name": "Generate Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -768,
+        240
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error ? true : false }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "10113902-a0cb-4767-86ba-110193a35b64",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.error?.message || '' }}",
+              "operation": "contains",
+              "value2": "403"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "64bdc654-5006-45dd-8177-d2444d52dd86",
+      "name": "Is Quota Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 504
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.error?.message || '' }}",
+              "operation": "contains",
+              "value2": "504"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "bdc3211c-85b9-4a07-b19f-c93f0cee4f2d",
+      "name": "Is 504 Timeout?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "a3f48e1a-6c72-4307-8f8d-77b1119424c2",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Video generation failed after retries or hit a critical error.\"\n}",
+        "options": {}
+      },
+      "id": "bfe6817d-e916-48c2-8000-4dfe87b6d407",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        160,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-video",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bc589405-69b0-4f3c-919f-f8db01ab99c5",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        240
+      ],
+      "webhookId": "f0028672-493e-4bc2-a5d0-ffc0558aeed3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"f8df6f97acmsh23a7e9e036a0377p183447jsnb1603be79051\",\n  \"fa50b60bf5msha4b7fc8d16f66cap1b3305jsn917305b9182a\",\n  \"8600d58ea6msh950da54a8676db4p14da23jsn494d7fcc18c4\",\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"fd4b480f62msh914725249be31b0p15b789jsn9e23a9bf2dbb\",\n  \"9ca5da259cmsh3a660d7ab6ba7d0p1087e8jsnbd892cff89c6\",\n  \"0603a8dd87msh2cd2a3aa7e3e23bp11fac4jsn747c62e86fb4\" \n ];\n staticData.keyIndex = 0;\n}\n\nconst prompt = $('Webhook1').item.json.body.prompt;\n\nreturn [{\n json:{\n  prompt,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "c24128a6-214e-46b6-b858-4e6aed57ea86",
+      "name": "Get API Key2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "7850266d-47d6-4c2c-91e6-ad9e78c4a698",
+      "name": "Rotate API Key2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Is Quota Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Quota Limit?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is 504 Timeout?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is 504 Timeout?": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get API Key2": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key2": {
+      "main": [
+        [
+          {
+            "node": "Get API Key2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "659ea52b-8a78-4bd5-aaf6-86cbd91b4f4c",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "j1Xa5FYWuJ6DFVSi",
+  "tags": []
+}

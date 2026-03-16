@@ -1,0 +1,119 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Paintbrush, Trash2, Copy, Check, Zap, Scissors } from "lucide-react";
+
+export default function CssMinifier() {
+  const [input, setInput] = useState(
+    ".header { color: #fff; margin: 20px; } \n .footer { background: black; }",
+  );
+  const [output, setOutput] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const minifyCss = () => {
+    let minified = input
+      .replace(/\/\*[\s\S]*?\*\//g, "") // Remove comments
+      .replace(/\s+/g, " ") // Replace multiple spaces with one
+      .replace(/\s*([:;{}])\s*/g, "$1") // Remove spaces around delimiters
+      .replace(/;}/g, "}") // Remove last semicolon
+      .trim();
+    setOutput(minified);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const savedPercent =
+    input.length > 0 && output.length > 0
+      ? Math.round((1 - output.length / input.length) * 100)
+      : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="pb-12 flex flex-col max-w-6xl mx-auto"
+    >
+      <div className="mb-6 flex flex-col items-center text-center">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 flex items-center justify-center mb-4">
+          <Paintbrush className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          CSS Minifier
+        </h1>
+        <p className="text-foreground/60 mt-2 text-sm sm:text-base">
+          Compress your CSS by removing all unnecessary whitespace and comments.
+        </p>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground/50 uppercase tracking-widest">
+              Raw CSS
+            </label>
+            <button
+              onClick={() => setInput("")}
+              className="p-1 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="w-full h-96 bg-black/10 border border-border rounded-2xl p-6 font-mono text-sm outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+          />
+
+          <button
+            onClick={minifyCss}
+            className="btn-primary w-full bg-indigo-500 border-none h-14 uppercase font-black tracking-widest gap-2 shadow-lg shadow-indigo-500/20"
+          >
+            <Scissors className="w-5 h-5" /> Minify CSS
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground/50 uppercase tracking-widest">
+              Minified Result
+            </label>
+            {output && (
+              <span className="text-[10px] font-black bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-widest animate-pulse">
+                Saved {savedPercent}%
+              </span>
+            )}
+          </div>
+          <div className="w-full h-96 bg-black/20 border border-border rounded-2xl p-6 font-mono text-sm overflow-auto break-all relative group bg-grid-pattern">
+            {output ? (
+              <pre className="text-indigo-400 whitespace-pre-wrap">
+                {output}
+              </pre>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center opacity-20 text-center space-y-4">
+                <Zap className="w-12 h-12" />
+                <p className="font-bold uppercase tracking-widest">
+                  Click Minify to compress
+                </p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleCopy}
+            disabled={!output}
+            className="btn-secondary w-full h-14 border-border grayscale hover:grayscale-0 transition-all font-black uppercase tracking-widest gap-2"
+          >
+            {copied ? (
+              <Check className="w-5 h-5 text-emerald-500" />
+            ) : (
+              <Copy className="w-5 h-5" />
+            )}
+            {copied ? "Copied" : "Copy Minified CSS"}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}

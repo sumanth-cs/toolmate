@@ -1,0 +1,297 @@
+{
+  "name": "CodeMate AI Speech-to-Text (File Upload or URL Transcription)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transcribe-audio",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a11b2b76-c5ad-45c2-81c5-25bf15126a1b",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        384,
+        368
+      ],
+      "webhookId": "a7965459-6210-4090-8118-bcf9c3664e8c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"YOUR_RAPID_API_KEY_2\"\n ];\n staticData.keyIndex = 0;\n}\n\nconst body = $('Webhook').item.json.body || {};\n\n// Get audio URL and language from frontend\nconst audioUrl = body.url || '';\nconst lang = body.lang || 'en';\n\nreturn [{\n json:{\n  audioUrl: audioUrl,\n  lang: lang,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "9e7e8987-7803-4d63-88fe-ac433c1cb464",
+      "name": "Extract Params & Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://speech-to-text-ai.p.rapidapi.com/transcribe",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.audioUrl }}"
+            },
+            {
+              "name": "lang",
+              "value": "={{ $json.lang }}"
+            },
+            {
+              "name": "task",
+              "value": "transcribe"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "speech-to-text-ai.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "b9f39011-3e3b-4b16-8025-48a78b6edc25",
+      "name": "Speech-to-Text API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        368
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error ? true : false }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d15013a3-c8a9-4f7c-b8dc-5ec2c906fd47",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ]
+        }
+      },
+      "id": "862a1b94-22b8-47aa-a15c-5647f79883c0",
+      "name": "Is Quota Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "2c8a5b80-e7b0-4016-a3f0-2d9de7a4867c",
+      "name": "Rotate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "6db24398-0985-43d6-ba37-1414571312d0",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        272
+      ],
+      "webhookId": "86ee41fa-2d36-44eb-90c4-3b5b8b09d742"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"transcript\": {{ JSON.stringify($json.transcript || $json.text) }}\n}",
+        "options": {}
+      },
+      "id": "9c6d1bb6-eb33-429f-8514-20b96cd93867",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Speech-to-Text (Transcription)\n\n\n#Test curl:\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/transcribe-audio\" -H \"Content-Type: application/json\" -d \"{\\\"url\\\": \\\"https://cdn.openai.com/whisper/draft-20220913a/micro-machines.wav\\\", \\\"lang\\\": \\\"en\\\"}\"",
+        "height": 848,
+        "width": 2016
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -16
+      ],
+      "id": "d2cd5788-1aee-47f9-859a-fab5bb11cf38",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params & Key": {
+      "main": [
+        [
+          {
+            "node": "Speech-to-Text API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speech-to-Text API": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Is Quota Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Quota Limit?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "Speech-to-Text API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e2ec3990-54aa-4f53-b87c-eca01c540319",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "Vwl78MPcwUoIMqpG",
+  "tags": []
+}

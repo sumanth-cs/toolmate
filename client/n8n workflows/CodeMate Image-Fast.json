@@ -1,0 +1,215 @@
+{
+  "name": "CodeMate Image-Fast",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "73d5128f-2cc9-4a90-9779-826c60b882a6",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        112,
+        208
+      ],
+      "webhookId": "web-app-image-gen-endpoint"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"imageUrl\": \"{{ $json.generated_image }}\"\n}",
+        "options": {}
+      },
+      "id": "cecf2289-9643-44de-a5a0-dce55c09b5bf",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        928,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"f8df6f97acmsh23a7e9e036a0377p183447jsnb1603be79051\",\n  \"fa50b60bf5msha4b7fc8d16f66cap1b3305jsn917305b9182a\",\n  \"8600d58ea6msh950da54a8676db4p14da23jsn494d7fcc18c4\",\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"fd4b480f62msh914725249be31b0p15b789jsn9e23a9bf2dbb\",\n  \"9ca5da259cmsh3a660d7ab6ba7d0p1087e8jsnbd892cff89c6\",\n  \"0603a8dd87msh2cd2a3aa7e3e23bp11fac4jsn747c62e86fb4\" \n ];\n staticData.keyIndex = 0;\n}\n\n// Grabs the prompt from the incoming MERN webhook POST request\nconst prompt = $('Webhook').item.json.body.prompt;\n\nreturn [{\n json:{\n  prompt,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "04b5af0c-e433-4936-835a-07622ede85c8",
+      "name": "Get API Key1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open-ai21.p.rapidapi.com/texttoimage2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "open-ai21.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\":\"{{$json.prompt}}\"}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "02701984-b3a0-4d3b-b5da-7e7c61ae6620",
+      "name": "Generate Image1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        528,
+        208
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ]
+        }
+      },
+      "id": "f712c57f-57f2-466f-b963-3bc94d3ada13",
+      "name": "Quota Exceeded?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        720,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nstaticData.keyIndex++;\n\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\n\nreturn [{json:{retry:true}}];"
+      },
+      "id": "b17c9dad-693c-46e8-9cb9-bb77e2a13f94",
+      "name": "Rotate API Key1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Webhook Test\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/generate-image\" -H \"Content-Type: application/json\" -d \"{\\\"prompt\\\": \\\"A highly detailed futuristic cyberpunk city, 4k resolution\\\"}\"\n\n\nwebhook test curl windows cmd\n\n## This works for website integration\n# CodeMate Image-Fast\n",
+        "height": 656,
+        "width": 1216,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -112
+      ],
+      "id": "b3a6c93f-f909-4a2f-8e70-95fed4ab9178",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get API Key1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get API Key1": {
+      "main": [
+        [
+          {
+            "node": "Generate Image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image1": {
+      "main": [
+        [
+          {
+            "node": "Quota Exceeded?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quota Exceeded?1": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key1": {
+      "main": [
+        [
+          {
+            "node": "Get API Key1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e30f0793-2d37-49b1-9284-741b2d16b432",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "65SHnmqisrYcO0sL",
+  "tags": []
+}

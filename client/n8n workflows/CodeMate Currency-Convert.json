@@ -1,0 +1,283 @@
+{
+  "name": "CodeMate Currency-Convert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "convert-currency",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "81518e58-a112-4a64-a7be-a1aaf26becd7",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        128,
+        272
+      ],
+      "webhookId": "000ad818-6c02-49e5-9cf6-0af831414184"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"6705f6c2aemsh5ebe51663051d47p11e343jsne4aeaa2a0469\",\n  \"fa50b60bf5msha4b7fc8d16f66cap1b3305jsn917305b9182a\"\n ];\n staticData.keyIndex = 0;\n}\n\n// Safely grab the parameters sent from your React frontend\nconst body = $('Webhook').item.json.body || {};\n\nreturn [{\n json:{\n  fromCurrency: body.from || 'USD',\n  toCurrency: body.to || 'INR',\n  amount: body.amount || 1,\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "2ebec462-f754-4d9e-a03a-4d0d8262da1b",
+      "name": "Extract Params & API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://currency-converter18.p.rapidapi.com/api/v1/convert",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "={{ $json.fromCurrency }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.toCurrency }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.amount }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "currency-converter18.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "63c67146-13ac-4d88-ab4a-3d55a8ae868b",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        576,
+        272
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error ? true : false }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "2e6cc778-9e3d-4cc7-a82f-cc443ed331f6",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        784,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.error?.status || 0 }}",
+              "operation": "equal",
+              "value2": 429
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.error?.message || '' }}",
+              "operation": "contains",
+              "value2": "403"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "16e92ac4-5ee1-4337-823c-aa8d2f1dcb77",
+      "name": "Is Quota Limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "a287f616-2e2d-4f53-8c4c-02b9dfe29da8",
+      "name": "Rotate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "3cf5c0a8-ee89-444a-b417-dadb993cff78",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Currency conversion failed.\"\n}",
+        "options": {}
+      },
+      "id": "db625386-131c-4f49-bba8-f8057d199ea4",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Currency Converter\n\nTest:\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/convert-currency\" -H \"Content-Type: application/json\" -d \"{\\\"from\\\": \\\"USD\\\", \\\"to\\\": \\\"INR\\\", \\\"amount\\\": 100}\"",
+        "height": 672,
+        "width": 1360
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -96
+      ],
+      "id": "71447e75-c69d-4356-963b-89d92b5f7402",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & API Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params & API Key": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Is Quota Limit?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Quota Limit?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & API Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b851592a-7280-4e04-bdaf-111e59b1485c",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "6jfLdSt47vwUWf0l",
+  "tags": []
+}

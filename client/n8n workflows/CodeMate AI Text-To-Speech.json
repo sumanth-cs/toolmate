@@ -1,0 +1,219 @@
+{
+  "name": "CodeMate AI Text-To-Speech",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "text-to-speech",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a41705ff-0440-413d-a161-872c3b09a69d",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        448
+      ],
+      "webhookId": "a5b44872-9430-47d8-b65d-cde5cb04415e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\n\nif(!staticData.apiKeys){\n staticData.apiKeys = [\n  \"96498d4081mshc6834abd3013b32p19c125jsnf2d31734d722\",\n  \"YOUR_SECOND_TTS_KEY\"\n ];\n staticData.keyIndex = 0;\n}\n\nconst body = $('Webhook').item.json.body || {};\n\nreturn [{\n json:{\n  text: body.input || 'Hello, welcome to CodeMate AI.',\n  voice: body.voice || 'alloy',\n  model: body.model || 'tts-1',\n  instructions: body.instructions || 'Speak clearly.',\n  apiKey: staticData.apiKeys[staticData.keyIndex]\n }\n}];"
+      },
+      "id": "849d3953-68c0-4b05-abee-8c94489857e6",
+      "name": "Extract Params & Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open-ai-text-to-speech1.p.rapidapi.com/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "open-ai-text-to-speech1.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $json.model }}\",\n  \"input\": \"{{ $json.text }}\",\n  \"instructions\": \"{{ $json.instructions }}\",\n  \"voice\": \"{{ $json.voice }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "audioData"
+            }
+          }
+        }
+      },
+      "id": "38e2be1e-baf9-4a15-8bc8-9ec46cba47b7",
+      "name": "TTS API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        448
+      ],
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $hasBinary('audioData') ? false : true }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b293306f-a6df-4fee-a9cd-3cbc6d3bde4c",
+      "name": "Has Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        384,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.keyIndex++;\nif(staticData.keyIndex >= staticData.apiKeys.length){\n throw new Error('All API keys exhausted');\n}\nreturn [{json:{retry:true}}];"
+      },
+      "id": "604778f8-85fd-4761-b806-1a49ae7d794c",
+      "name": "Rotate API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"audio_base64\": \"data:audio/mpeg;base64,{{ $binary.audioData.data }}\"\n}",
+        "options": {}
+      },
+      "id": "2f8c09d1-6312-4c78-bccb-81edb4fa3f4b",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        608,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CodeMate AI Text-To-Speech\n\nCurl:\n\ncurl -X POST \"https://cmpunktg5.app.n8n.cloud/webhook-test/text-to-speech\" -H \"Content-Type: application/json\" -d \"{\\\"input\\\": \\\"Welcome to CodeMate AI, your smart academic toolkit.\\\", \\\"voice\\\": \\\"alloy\\\"}\"",
+        "height": 704,
+        "width": 1264
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        112
+      ],
+      "id": "2f51e031-7491-417d-999e-8a7f958ff2ac",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Params & Key": {
+      "main": [
+        [
+          {
+            "node": "TTS API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TTS API": {
+      "main": [
+        [
+          {
+            "node": "Has Error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error?": {
+      "main": [
+        [
+          {
+            "node": "Rotate API Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotate API Key": {
+      "main": [
+        [
+          {
+            "node": "Extract Params & Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d8f8f052-f40d-49c2-a366-e47091fb2ca2",
+  "meta": {
+    "instanceId": "cd958681b15a5edf3f5fec628393e6b2e467edd67bcf30365f8752a4bb60d98b"
+  },
+  "id": "vRiWD0rEUidJoLVp",
+  "tags": []
+}
