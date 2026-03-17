@@ -11,7 +11,7 @@ export function useGeminiAPI() {
       setError(null);
       try {
         // Use provided key as global default if local storage is empty
-        const GLOBAL_KEY = process.env.VITE_GEMINI_API_KEY || "";
+        const GLOBAL_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
         const apiKey = localStorage.getItem("gemini_api_key") || GLOBAL_KEY;
         if (!apiKey) {
           throw new Error(

@@ -95,12 +95,8 @@ import BlogWriter from "./pages/tools/BlogWriter";
 import WebsiteSummarizer from "./pages/tools/WebsiteSummarizer";
 import IdeaGenerator from "./pages/tools/IdeaGenerator";
 
-// Protected Route Wrapper
+// Protected Route Wrapper - Disabled to allow anonymous access
 const ProtectedRoute = ({ children }) => {
-  const { user } = useStore();
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
   return <>{children}</>;
 };
 

@@ -479,7 +479,18 @@ export default function MainLayout() {
 
         {/* Bottom User */}
         <div className="p-3 border-t border-border/30 mt-auto shrink-0">
-          {isOpen ? (
+          {!user ? (
+            isOpen ? (
+              <div className="flex flex-col gap-2">
+                <Link to="/login" onClick={handleNavClick} className="btn-secondary w-full justify-center text-xs py-2">Log In</Link>
+                <Link to="/register" onClick={handleNavClick} className="btn-primary w-full justify-center text-xs py-2">Sign Up</Link>
+              </div>
+            ) : (
+              <Link to="/login" onClick={handleNavClick} className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-[var(--hover-bg)] transition-colors text-brand-500">
+                <User className="w-5 h-5" />
+              </Link>
+            )
+          ) : isOpen ? (
             <div className="flex items-center gap-3 px-2 py-1.5">
               <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-tr from-brand-500 to-brand-400 text-white font-bold text-xs shrink-0 shadow-md shadow-brand-500/20">
                 {user?.name?.charAt(0).toUpperCase() || "U"}
@@ -627,78 +638,85 @@ export default function MainLayout() {
             <div className="h-5 w-px bg-border/50 hidden sm:block" />
 
             {/* Profile */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-1.5 pr-2 sm:pr-3 rounded-xl hover:bg-[var(--hover-bg)] transition-colors"
-              >
-                <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-tr from-brand-500 to-brand-400 text-white font-bold text-[10px] shadow-sm">
-                  {user?.name?.charAt(0).toUpperCase() || "U"}
-                </div>
-                <span className="text-sm font-medium text-foreground hidden sm:block max-w-[80px] truncate">
-                  {user?.name?.split(" ")[0]}
-                </span>
-                <ChevronDown
-                  className={`w-3 h-3 text-muted-foreground hidden sm:block transition-transform duration-150 ${profileOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {profileOpen && (
-                <div className="fixed top-14 mt-1 right-3 sm:right-5 w-60 dropdown-solid rounded-2xl shadow-dropdown overflow-hidden z-[200]">
-                  <div className="p-3 border-b border-border/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-tr from-brand-500 to-brand-400 text-white font-bold text-sm shadow-md">
-                        {user?.name?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {user?.name}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {user?.email}
-                        </p>
+            {user ? (
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 p-1.5 pr-2 sm:pr-3 rounded-xl hover:bg-[var(--hover-bg)] transition-colors"
+                >
+                  <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-tr from-brand-500 to-brand-400 text-white font-bold text-[10px] shadow-sm">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <span className="text-sm font-medium text-foreground hidden sm:block max-w-[80px] truncate">
+                    {user?.name?.split(" ")[0]}
+                  </span>
+                  <ChevronDown
+                    className={`w-3 h-3 text-muted-foreground hidden sm:block transition-transform duration-150 ${profileOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {profileOpen && (
+                  <div className="fixed top-14 mt-1 right-3 sm:right-5 w-60 dropdown-solid rounded-2xl shadow-dropdown overflow-hidden z-[200]">
+                    <div className="p-3 border-b border-border/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-tr from-brand-500 to-brand-400 text-white font-bold text-sm shadow-md">
+                          {user?.name?.charAt(0).toUpperCase() || "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {user?.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {user?.email}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="p-1.5">
-                    {[
-                      { to: "/app/profile", icon: User, label: "My Profile" },
-                      {
-                        to: "/app/change-password",
-                        icon: Lock,
-                        label: "Change Password",
-                      },
-                      {
-                        to: "/app/settings",
-                        icon: Settings,
-                        label: "Settings",
-                      },
-                    ].map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-[var(--hover-bg)] transition-colors"
+                    <div className="p-1.5">
+                      {[
+                        { to: "/app/profile", icon: User, label: "My Profile" },
+                        {
+                          to: "/app/change-password",
+                          icon: Lock,
+                          label: "Change Password",
+                        },
+                        {
+                          to: "/app/settings",
+                          icon: Settings,
+                          label: "Settings",
+                        },
+                      ].map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-foreground hover:bg-[var(--hover-bg)] transition-colors"
+                        >
+                          <item.icon className="w-4 h-4 text-muted-foreground" />
+                          <span>{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="p-1.5 border-t border-border/30">
+                      <button
+                        onClick={() => {
+                          logout();
+                          setProfileOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-500/10 transition-colors w-full"
                       >
-                        <item.icon className="w-4 h-4 text-muted-foreground" />
-                        <span>{item.label}</span>
-                      </Link>
-                    ))}
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="p-1.5 border-t border-border/30">
-                    <button
-                      onClick={() => {
-                        logout();
-                        setProfileOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-500/10 transition-colors w-full"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link to="/login" className="hidden sm:block text-sm font-semibold hover:text-brand-500 text-foreground transition-colors px-2">Log In</Link>
+                <Link to="/register" className="btn-primary text-xs px-4 py-1.5 rounded-xl">Sign Up</Link>
+              </div>
+            )}
           </div>
         </header>
 
