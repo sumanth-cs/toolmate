@@ -7,8 +7,8 @@ import {
   changePassword,
   verifyEmail,
   resendVerification,
-} from "../controllers/authController";
-import { protect } from "../middleware/authMiddleware";
+} from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 

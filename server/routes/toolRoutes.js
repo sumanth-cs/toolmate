@@ -6,8 +6,8 @@ import {
   utilityGeneric,
   removeBackground,
   n8nProxy,
-} from "../controllers/toolController";
-import { protect } from "../middleware/authMiddleware";
+} from "../controllers/toolController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 

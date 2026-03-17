@@ -4,9 +4,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import mongoose from "mongoose";
-import authRoutes from "./routes/authRoutes";
-import toolRoutes from "./routes/toolRoutes";
-import { errorHandler } from "./middleware/errorMiddleware";
+import authRoutes from "./routes/authRoutes.js";
+import toolRoutes from "./routes/toolRoutes.js";
+import { errorHandler } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 

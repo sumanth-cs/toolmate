@@ -1,9 +1,9 @@
-import User from "../models/User";
-import generateToken from "../utils/generateToken";
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
 import {
   generateVerificationToken,
   sendVerificationEmail,
-} from "../utils/emailService";
+} from "../utils/emailService.js";
 
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
