@@ -10,6 +10,8 @@
 
 <hr />
 
+DEPLOYED LINK : https://toolmate-frontend1.onrender.com
+
 ## 🚀 Overview
 
 **ToolMate AI** was developed as a comprehensive, modern utility platform designed to replace the dozens of ad-ridden online tools developers and creators use daily. Built with an uncompromising focus on UI/UX (featuring responsive glassmorphism) and Data Privacy, ToolMate performs a vast majority of its heavy lifting **entirely in your browser**.
